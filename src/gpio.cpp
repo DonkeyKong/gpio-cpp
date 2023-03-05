@@ -37,7 +37,8 @@ struct Gpio::Line
   {
     if (status != 0)
     {
-      std::stringstream ss << msg << " (" << strerror(errno) << ")";
+      std::stringstream ss;
+      ss << msg << " (" << strerror(errno) << ")";
       throw std::runtime_error(ss.str());
     }
   }
