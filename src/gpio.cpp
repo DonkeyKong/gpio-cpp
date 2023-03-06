@@ -170,7 +170,7 @@ Gpio::Gpio(const std::string& gpioDevice, const std::string& consumerName):
         std::lock_guard lock(mutex_);
         if (pollfd_->size() > 0)
         {
-          if (poll(&(*pollfd_)[0], pollfd_->size(), 16) <= 0) continue;
+          if (poll(pollfd_->data(), pollfd_->size(), 16) <= 0) continue;
         }
         else
         {
