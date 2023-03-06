@@ -1,2 +1,4 @@
 .vscode
 build
+include/gpio-cpp/.DS_Store
+.DS_Store

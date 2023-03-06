@@ -161,15 +161,23 @@ Gpio::Gpio(const std::string& gpioDevice, const std::string& consumerName):
   gpioDevice_(gpioDevice),
   consumerName_(consumerName)
 {
+  pollfd_ = std::make_unique<std::vector<struct pollfd>>();
   thread_ = std::make_unique<std::thread>([&]()
   {
     while (!stopThread_)
     {
       {
         std::lock_guard lock(mutex_);
-        if (poll(&pollfd_[0], pollfd_.size(), 16) <= 0) continue;
+        if (pollfd_->size() > 0)
+        {
+          if (poll(&(*pollfd_)[0], pollfd_->size(), 16) <= 0) continue;
+        }
+        else
+        {
+          std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(16));
+        }
         
-        for (const auto& pollfd : pollfd_)
+        for (const auto& pollfd : *pollfd_)
         {
           if (pollfd.revents & POLLIN)
           {
@@ -218,19 +226,19 @@ void Gpio::releaseLine(int line)
 
 void Gpio::setupPollfd()
 {
-  pollfd_.resize(lines_.size());
+  pollfd_->resize(lines_.size());
   int count = 0;
   // Iterate over all the exported lines
   for (const auto& [pin, line] : lines_)
   {
     if (line->mode_ == LineMode::Input)
     {
-      pollfd_[count].fd = line->fd_;
-      pollfd_[count].events = POLLIN;
+      (*pollfd_)[count].fd = line->fd_;
+      (*pollfd_)[count].events = POLLIN;
       ++count;
     }
   }
-  pollfd_.resize(count);
+  pollfd_->resize(count);
 }
 
 // Get a line's active status as a bool, true if the line is active, false otherwise.

@@ -7,8 +7,13 @@ set(CMAKE_CXX_STANDARD 17)
 # Create all the dependecy targets
 add_subdirectory("deps")
 
-add_library( ${PROJECT_NAME} 
-                src/gpio.cpp )
+if (LINUX)
+    add_library( ${PROJECT_NAME}
+                    src/gpio.cpp )
+else()
+    add_library( ${PROJECT_NAME}
+                    src/gpio-nop.cpp )
+endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 

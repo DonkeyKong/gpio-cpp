@@ -8,6 +8,8 @@
 
 #include <sigslot/signal.hpp>
 
+struct pollfd;
+
 class Gpio
 {
 public:
@@ -82,7 +84,7 @@ private:
   struct Line;
   void setupPollfd();
   Line& getLineFromFd(int fd);
-  std::vector<struct pollfd> pollfd_;
+  std::unique_ptr<std::vector<struct pollfd>> pollfd_;
   std::map<int, std::unique_ptr<Line>> lines_;
   std::unique_ptr<std::thread> thread_;
   std::mutex mutex_;
