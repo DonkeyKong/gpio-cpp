@@ -166,38 +166,42 @@ Gpio::Gpio(const std::string& gpioDevice, const std::string& consumerName):
   {
     while (!stopThread_)
     {
+      bool needsSleep = false;
       {
         std::lock_guard lock(mutex_);
         if (pollfd_->size() > 0)
         {
           if (poll(pollfd_->data(), pollfd_->size(), 16) <= 0) continue;
-        }
-        else
-        {
-          std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(16));
-        }
-        
-        for (const auto& pollfd : *pollfd_)
-        {
-          if (pollfd.revents & POLLIN)
+          for (const auto& pollfd : *pollfd_)
           {
-            struct gpio_v2_line_event event;
-            int ret = ::read(pollfd.fd, &event, sizeof(event));
-            if (ret == sizeof(event)) 
+            if (pollfd.revents & POLLIN)
             {
-              Line& line = getLineFromFd(pollfd.fd);
-              std::chrono::steady_clock::time_point timestamp(std::chrono::nanoseconds(event.timestamp_ns));
-              if (event.id == GPIO_V2_LINE_EVENT_RISING_EDGE)
+              struct gpio_v2_line_event event;
+              int ret = ::read(pollfd.fd, &event, sizeof(event));
+              if (ret == sizeof(event))
               {
-                line.signal_(line.line_, LineTransition::RisingEdge, timestamp);
-              }
-              else if (event.id == GPIO_V2_LINE_EVENT_FALLING_EDGE)
-              {
-                line.signal_(line.line_, LineTransition::FallingEdge, timestamp);
+                Line& line = getLineFromFd(pollfd.fd);
+                std::chrono::steady_clock::time_point timestamp(std::chrono::nanoseconds(event.timestamp_ns));
+                if (event.id == GPIO_V2_LINE_EVENT_RISING_EDGE)
+                {
+                  line.signal_(line.line_, LineTransition::RisingEdge, timestamp);
+                }
+                else if (event.id == GPIO_V2_LINE_EVENT_FALLING_EDGE)
+                {
+                  line.signal_(line.line_, LineTransition::FallingEdge, timestamp);
+                }
               }
             }
           }
         }
+        else
+        {
+          needsSleep = true;
+        }
+      }
+      if (needsSleep)
+      {
+        std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(16));
       }
     }
   });
